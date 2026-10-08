@@ -19,6 +19,7 @@ class AdminAssets
     public function init(): void
     {
         add_action('admin_enqueue_scripts', [$this, 'enqueue_assets']);
+        add_action('enqueue_block_editor_assets', [$this, 'enqueue_editor_assets']);
     }
 
     /**
@@ -60,5 +61,46 @@ class AdminAssets
             'version'     => ANSWERMESH_VERSION,
             'currentHook' => $hook,
         ]);
+    }
+
+    /**
+     * Enqueue block editor sidebar script for Gutenberg screens.
+     */
+    public function enqueue_editor_assets(): void
+    {
+        $gutenberg_asset = ANSWERMESH_DIR . 'build/gutenberg.asset.php';
+        $deps = ['wp-plugins', 'wp-edit-post', 'wp-element', 'wp-components', 'wp-data', 'wp-blocks', 'wp-i18n', 'wp-api-fetch'];
+        $version = ANSWERMESH_VERSION;
+
+        if (file_exists($gutenberg_asset)) {
+            $asset = require $gutenberg_asset;
+            $deps = $asset['dependencies'] ?? $deps;
+            $version = $asset['version'] ?? $version;
+        }
+
+        if (file_exists(ANSWERMESH_DIR . 'build/gutenberg.js')) {
+            wp_enqueue_script(
+                'answermesh-gutenberg-sidebar',
+                ANSWERMESH_URL . 'build/gutenberg.js',
+                $deps,
+                $version,
+                true
+            );
+
+            if (file_exists(ANSWERMESH_DIR . 'build/index.css')) {
+                wp_enqueue_style(
+                    'answermesh-gutenberg-style',
+                    ANSWERMESH_URL . 'build/index.css',
+                    ['wp-components', 'wp-edit-post'],
+                    $version
+                );
+            }
+
+            wp_localize_script('answermesh-gutenberg-sidebar', 'answermeshSettings', [
+                'root'    => esc_url_raw(rest_url('aiseo/v1/')),
+                'nonce'   => wp_create_nonce('wp_rest'),
+                'version' => ANSWERMESH_VERSION,
+            ]);
+        }
     }
 }

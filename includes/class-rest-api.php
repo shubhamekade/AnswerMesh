@@ -109,6 +109,20 @@ class RestApi
             'callback'            => [$this, 'get_crawl_status'],
             'permission_callback' => [$this, 'check_admin_permission'],
         ]);
+
+        // GET /aiseo/v1/recommendations
+        register_rest_route(self::NAMESPACE, '/recommendations', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_recommendations'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/posts/{id}/analyze
+        register_rest_route(self::NAMESPACE, '/posts/(?P<id>\d+)/analyze', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'trigger_post_analyze'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
     }
 
     /**
@@ -195,7 +209,7 @@ class RestApi
     }
 
     /**
-     * GET /dashboard skeleton handler.
+     * GET /dashboard handler.
      */
     public function get_dashboard(WP_REST_Request $request): WP_REST_Response
     {
@@ -211,20 +225,22 @@ class RestApi
         );
 
         if (!$site_scores) {
-            $site_scores = [
-                'overall_score' => 0,
-                'seo_score'     => 0,
-                'aeo_score'     => 0,
-                'geo_score'     => 0,
-                'entity_score'  => 0,
-                'trust_score'   => 0,
-                'status'        => 'uncalibrated',
-            ];
+            $site_scores = Score::compute_and_save_site_score();
+        } else {
+            $site_scores['label'] = Score::get_rating_label((int) $site_scores['overall_score']);
         }
 
         // Fetch count of pending recommendations.
         $pending_recommendations_count = (int) $wpdb->get_var(
             "SELECT COUNT(*) FROM {$rec_table} WHERE status = 'pending'"
+        );
+
+        // Fetch top 5 priorities.
+        $top_priorities = RecommendationEngine::get_top_priorities(5);
+
+        // Fetch analyzed posts count.
+        $analyzed_count = (int) $wpdb->get_var(
+            "SELECT COUNT(DISTINCT post_id) FROM {$scores_table} WHERE post_id > 0"
         );
 
         // Fetch total indexed posts count.
@@ -235,7 +251,8 @@ class RestApi
             'data'    => [
                 'scores'               => $site_scores,
                 'pending_actions'      => $pending_recommendations_count,
-                'analyzed_pages_count' => 0,
+                'top_priorities'       => $top_priorities,
+                'analyzed_pages_count' => $analyzed_count,
                 'total_posts_count'    => $total_posts,
             ],
         ], 200);
@@ -369,6 +386,74 @@ class RestApi
         return new WP_REST_Response([
             'success' => true,
             'data'    => SiteAnalyzer::get_crawl_status(),
+        ], 200);
+    }
+
+    /**
+     * GET /recommendations handler.
+     */
+    public function get_recommendations(WP_REST_Request $request): WP_REST_Response
+    {
+        global $wpdb;
+        $table = $wpdb->prefix . 'aiseo_recommendations';
+
+        $post_id = (int) $request->get_param('post_id');
+        $priority = $request->get_param('priority');
+
+        $where = ["status = 'pending'"];
+        $params = [];
+
+        if ($post_id > 0) {
+            $where[] = "post_id = %d";
+            $params[] = $post_id;
+        }
+        if (!empty($priority)) {
+            $where[] = "priority = %s";
+            $params[] = sanitize_key($priority);
+        }
+
+        $where_sql = implode(' AND ', $where);
+        $query = "SELECT * FROM {$table} WHERE {$where_sql} ORDER BY 
+            CASE priority
+                WHEN 'critical' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
+                ELSE 5
+            END ASC, created_at DESC LIMIT 100";
+
+        if (!empty($params)) {
+            $results = $wpdb->get_results($wpdb->prepare($query, ...$params), ARRAY_A);
+        } else {
+            $results = $wpdb->get_results($query, ARRAY_A);
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data'    => $results ?: [],
+        ], 200);
+    }
+
+    /**
+     * POST /posts/{id}/analyze handler.
+     */
+    public function trigger_post_analyze(WP_REST_Request $request): WP_REST_Response
+    {
+        $post_id = (int) $request->get_param('id');
+        $post = get_post($post_id);
+        if (!$post) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Post not found.', 'answermesh'),
+            ], 404);
+        }
+
+        $scores = Score::compute_and_save_post_score($post_id);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data'    => $scores,
+            'message' => __('Post successfully analyzed and scored.', 'answermesh'),
         ], 200);
     }
 }

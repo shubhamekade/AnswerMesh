@@ -33,7 +33,7 @@
 - [x] **Phase 1: Plugin Foundation & Core Architecture** (Completed — 01-01, 01-02, 01-03 executed)
 - [x] **Phase 2: Technical SEO Engine & Structured Data** (Completed — 02-01, 02-02, 02-03 executed)
 - [x] **Phase 3: Content Analyzer & Entity Extraction** (Completed — 03-01, 03-02, 03-03 executed)
-- [ ] **Phase 4: Multi-Layer Diagnostic Scoring System** (Next up)
+- [ ] **Phase 4: Multi-Layer Diagnostic Scoring System** (Planned — 3 plans ready: 04-01, 04-02, 04-03)
 - [ ] **Phase 5: AI Intelligence Services & Provider Abstraction**
 - [ ] **Phase 6: Admin Dashboard & Editor Experience**
 - [ ] **Phase 7: Verification, Security Hardening & MVP Polish**
@@ -41,4 +41,4 @@
 ---
 
 ## Next Steps
-Run `/gsd-plan-phase 4` to generate detailed task execution plans for Phase 4 (Multi-Layer Diagnostic Scoring System).
+Run `/gsd-execute-phase 4` to execute Phase 4 plans (Layer Scoring, Composite Visibility Score, Evidence Recommendations).

@@ -27,6 +27,10 @@ class Entity
     public static function get_all(?string $type = null): array
     {
         global $wpdb;
+        if (!isset($wpdb) || $wpdb === null) {
+            return [];
+        }
+
         $table = $wpdb->prefix . 'aiseo_entities';
 
         if ($type !== null) {

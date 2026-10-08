@@ -123,6 +123,34 @@ class RestApi
             'callback'            => [$this, 'trigger_post_analyze'],
             'permission_callback' => [$this, 'check_admin_permission'],
         ]);
+
+        // POST /aiseo/v1/ai/test-connection
+        register_rest_route(self::NAMESPACE, '/ai/test-connection', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'test_ai_connection'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/posts/{id}/generate-answer
+        register_rest_route(self::NAMESPACE, '/posts/(?P<id>\d+)/generate-answer', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'generate_answer'],
+            'permission_callback' => [$this, 'check_editor_permission'],
+        ]);
+
+        // POST /aiseo/v1/posts/{id}/generate-faq
+        register_rest_route(self::NAMESPACE, '/posts/(?P<id>\d+)/generate-faq', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'generate_faq'],
+            'permission_callback' => [$this, 'check_editor_permission'],
+        ]);
+
+        // POST /aiseo/v1/posts/{id}/apply-diff
+        register_rest_route(self::NAMESPACE, '/posts/(?P<id>\d+)/apply-diff', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'apply_diff'],
+            'permission_callback' => [$this, 'check_editor_permission'],
+        ]);
     }
 
     /**
@@ -134,6 +162,21 @@ class RestApi
             return new WP_Error(
                 'rest_forbidden',
                 __('You do not have permission to access AnswerMesh settings.', 'answermesh'),
+                ['status' => 403]
+            );
+        }
+        return true;
+    }
+
+    /**
+     * Permission callback: requires edit_posts.
+     */
+    public function check_editor_permission(): bool|WP_Error
+    {
+        if (!current_user_can('edit_posts')) {
+            return new WP_Error(
+                'rest_forbidden',
+                __('You do not have permission to edit content.', 'answermesh'),
                 ['status' => 403]
             );
         }
@@ -455,5 +498,85 @@ class RestApi
             'data'    => $scores,
             'message' => __('Post successfully analyzed and scored.', 'answermesh'),
         ], 200);
+    }
+
+    /**
+     * POST /ai/test-connection handler.
+     */
+    public function test_ai_connection(WP_REST_Request $request): WP_REST_Response
+    {
+        $params = $request->get_json_params() ?: [];
+        $provider = sanitize_key($params['provider'] ?? '');
+        $api_key = trim((string) ($params['api_key'] ?? ''));
+        $model = sanitize_text_field($params['model'] ?? '');
+
+        // If api_key masked, pull saved decrypted key.
+        if (str_contains($api_key, '••••••••') || empty($api_key)) {
+            $api_key = Settings::get_instance()->get_decrypted_api_key();
+        }
+
+        $result = AI::test_connection($provider, $api_key, $model);
+
+        return new WP_REST_Response($result, $result['success'] ? 200 : 400);
+    }
+
+    /**
+     * POST /posts/{id}/generate-answer handler.
+     */
+    public function generate_answer(WP_REST_Request $request): WP_REST_Response
+    {
+        $post_id = (int) $request->get_param('id');
+        $params = $request->get_json_params() ?: [];
+        $question = sanitize_text_field($params['question'] ?? '');
+
+        if (empty($question)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'error'   => __('Question parameter is required.', 'answermesh'),
+            ], 400);
+        }
+
+        $proposal = ContentEngine::generate_answer_block($post_id, $question);
+
+        return new WP_REST_Response($proposal, $proposal['success'] ? 200 : 400);
+    }
+
+    /**
+     * POST /posts/{id}/generate-faq handler.
+     */
+    public function generate_faq(WP_REST_Request $request): WP_REST_Response
+    {
+        $post_id = (int) $request->get_param('id');
+        $params = $request->get_json_params() ?: [];
+        $count = max(1, min(10, (int) ($params['count'] ?? 3)));
+
+        $proposal = ContentEngine::generate_faq($post_id, $count);
+
+        return new WP_REST_Response($proposal, $proposal['success'] ? 200 : 400);
+    }
+
+    /**
+     * POST /posts/{id}/apply-diff handler.
+     */
+    public function apply_diff(WP_REST_Request $request): WP_REST_Response
+    {
+        $post_id = (int) $request->get_param('id');
+        $params = $request->get_json_params() ?: [];
+        $action_type = sanitize_key($params['type'] ?? 'append');
+        $content = (string) ($params['content'] ?? '');
+
+        if (empty($content)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Content cannot be empty.', 'answermesh'),
+            ], 400);
+        }
+
+        $applied = ContentEngine::apply_proposal($post_id, $action_type, $content);
+
+        return new WP_REST_Response([
+            'success' => $applied,
+            'message' => $applied ? __('Proposal successfully applied.', 'answermesh') : __('Failed to apply proposal.', 'answermesh'),
+        ], $applied ? 200 : 500);
     }
 }

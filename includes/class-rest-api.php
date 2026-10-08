@@ -275,7 +275,7 @@ class RestApi
 
         // Fetch count of pending recommendations.
         $pending_recommendations_count = (int) $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$rec_table} WHERE status = 'pending'"
+            $wpdb->prepare("SELECT COUNT(*) FROM {$rec_table} WHERE status = %s", 'pending')
         );
 
         // Fetch top 5 priorities.
@@ -283,7 +283,7 @@ class RestApi
 
         // Fetch analyzed posts count.
         $analyzed_count = (int) $wpdb->get_var(
-            "SELECT COUNT(DISTINCT post_id) FROM {$scores_table} WHERE post_id > 0"
+            $wpdb->prepare("SELECT COUNT(DISTINCT post_id) FROM {$scores_table} WHERE post_id > %d", 0)
         );
 
         // Fetch total indexed posts count.
@@ -443,8 +443,8 @@ class RestApi
         $post_id = (int) $request->get_param('post_id');
         $priority = $request->get_param('priority');
 
-        $where = ["status = 'pending'"];
-        $params = [];
+        $where = ["status = %s"];
+        $params = ['pending'];
 
         if ($post_id > 0) {
             $where[] = "post_id = %d";
@@ -465,11 +465,7 @@ class RestApi
                 ELSE 5
             END ASC, created_at DESC LIMIT 100";
 
-        if (!empty($params)) {
-            $results = $wpdb->get_results($wpdb->prepare($query, ...$params), ARRAY_A);
-        } else {
-            $results = $wpdb->get_results($query, ARRAY_A);
-        }
+        $results = $wpdb->get_results($wpdb->prepare($query, ...$params), ARRAY_A);
 
         return new WP_REST_Response([
             'success' => true,

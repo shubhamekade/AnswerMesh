@@ -49,29 +49,33 @@ class RecommendationEngine
             ];
         }
 
-        // 2. Heading hierarchy skips.
         $skips = $analysis['heading_audit']['level_skips'] ?? [];
         if (!empty($skips)) {
-            $recommendations[] = [
-                'type'             => 'heading_order',
-                'priority'         => self::PRIORITY_MEDIUM,
-                'confidence'       => 'High',
-                'title'            => __('Fix Skipped Heading Hierarchy Levels', 'answermesh'),
-                'description'      => __('The content skips heading hierarchy levels, which confuses machine document parsers.', 'answermesh'),
-                'evidence'         => sprintf(__('Detected heading jump: %s.', 'answermesh'), implode(', ', $skips)),
-                'impact'           => __('Generative answer engines extract answers within hierarchical sub-trees; skipped levels degrade outline extraction.', 'answermesh'),
-                'recommendation'   => __('Nest headings sequentially without skipping levels (e.g. follow H2 with H3, not H4).', 'answermesh'),
-                'acceptance_check' => __('All headings strictly follow sequential numerical order without skips.', 'answermesh'),
-            ];
+            $skip_strings = array_map(function ($s) {
+                return is_array($s) ? sprintf('H%d to H%d', $s['from'] ?? 0, $s['to'] ?? 0) : (string) $s;
+            }, $skips);
+            $evidence_text = sprintf(__('Detected heading jump: %s.', 'answermesh'), implode(', ', $skip_strings));
+                $recommendations[] = [
+                    'type'             => 'heading_order',
+                    'priority'         => self::PRIORITY_MEDIUM,
+                    'confidence'       => 'High',
+                    'title'            => __('Fix Skipped Heading Hierarchy Levels', 'answermesh'),
+                    'description'      => __('The content skips heading hierarchy levels, which confuses machine document parsers.', 'answermesh'),
+                    'evidence'         => $evidence_text,
+                    'impact'           => __('Generative answer engines extract answers within hierarchical sub-trees; skipped levels degrade outline extraction.', 'answermesh'),
+                    'recommendation'   => __('Nest headings sequentially without skipping levels (e.g. follow H2 with H3, not H4).', 'answermesh'),
+                    'acceptance_check' => __('All headings strictly follow sequential numerical order without skips.', 'answermesh'),
+                ];
         }
 
         // 3. Question coverage gaps.
         $unanswered = 0;
         $weak = 0;
         foreach ($questions as $q) {
-            if ($q['status'] === 'missing') {
+            $status = $q['status'] ?? $q['coverage_status'] ?? 'answered';
+            if ($status === 'missing') {
                 $unanswered++;
-            } elseif ($q['status'] === 'weak') {
+            } elseif ($status === 'weak') {
                 $weak++;
             }
         }

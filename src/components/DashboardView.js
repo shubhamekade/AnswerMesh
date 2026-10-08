@@ -5,13 +5,14 @@
 import { useState, useEffect } from '@wordpress/element';
 import { Button, Spinner, Notice } from '@wordpress/components';
 import apiFetch from '@wordpress/api-fetch';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import ScoreGauge from './ScoreGauge';
 
 export default function DashboardView({ onNavigateTab }) {
     const [dashboardData, setDashboardData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [crawling, setCrawling] = useState(false);
+    const [crawlProgress, setCrawlProgress] = useState(null);
     const [notice, setNotice] = useState(null);
 
     const loadDashboard = () => {
@@ -31,25 +32,50 @@ export default function DashboardView({ onNavigateTab }) {
         loadDashboard();
     }, []);
 
-    const handleStartCrawl = () => {
+    const handleStartCrawl = async () => {
         setCrawling(true);
         setNotice(null);
-        apiFetch({ path: '/aiseo/v1/crawl/start', method: 'POST' })
-            .then((res) => {
-                setCrawling(false);
-                setNotice({
-                    type: 'success',
-                    message: res.message || __('Site audit batch triggered successfully.', 'answermesh'),
+        setCrawlProgress(__('Initiating audit...', 'answermesh'));
+
+        try {
+            const startRes = await apiFetch({ path: '/aiseo/v1/crawl/start', method: 'POST' });
+            let currentStatus = startRes.data;
+
+            // Direct interactive batch loop: processes all pages without waiting for background cron
+            let maxBatches = 60; // Safety guard
+            while (currentStatus && currentStatus.status === 'running' && maxBatches-- > 0) {
+                const total = currentStatus.total || 0;
+                const processed = currentStatus.processed || 0;
+                setCrawlProgress(sprintf(__('Auditing pages (%d / %d)...', 'answermesh'), processed, total));
+
+                const batchRes = await apiFetch({
+                    path: '/aiseo/v1/crawl/process-batch',
+                    method: 'POST',
+                    data: { batch_size: 5 },
                 });
-                loadDashboard();
-            })
-            .catch((err) => {
-                setCrawling(false);
-                setNotice({
-                    type: 'error',
-                    message: err.message || __('Failed to trigger site audit.', 'answermesh'),
-                });
+                currentStatus = batchRes.data;
+
+                if (!currentStatus || currentStatus.status !== 'running') {
+                    break;
+                }
+            }
+
+            setCrawling(false);
+            setCrawlProgress(null);
+            setNotice({
+                type: 'success',
+                message: __('Site analysis completed! Diagnostic scores and recommendations are now live.', 'answermesh'),
             });
+            loadDashboard();
+        } catch (err) {
+            setCrawling(false);
+            setCrawlProgress(null);
+            setNotice({
+                type: 'error',
+                message: err.message || __('Failed to complete site audit.', 'answermesh'),
+            });
+            loadDashboard();
+        }
     };
 
     if (loading) {
@@ -61,7 +87,9 @@ export default function DashboardView({ onNavigateTab }) {
         );
     }
 
-    const { scores, rating, priorities, crawl_status, total_posts, analyzed_posts } = dashboardData || {};
+    const { scores, rating, priorities, crawl_status } = dashboardData || {};
+    const analyzedCount = Number(dashboardData?.analyzed_posts ?? dashboardData?.analyzed_pages_count ?? 0);
+    const totalCount = Number(dashboardData?.total_posts ?? dashboardData?.total_posts_count ?? 0);
 
     return (
         <div className="answermesh-dashboard-view">
@@ -87,18 +115,18 @@ export default function DashboardView({ onNavigateTab }) {
                     <h3 className="answermesh-card-title">{__('Audit & Crawl Coverage', 'answermesh')}</h3>
                     <div className="answermesh-stat-tiles">
                         <div className="answermesh-stat-tile">
-                            <span className="answermesh-stat-number">{analyzed_posts ?? 0}</span>
+                            <span className="answermesh-stat-number">{analyzedCount}</span>
                             <span className="answermesh-stat-label">{__('Pages Analyzed', 'answermesh')}</span>
                         </div>
                         <div className="answermesh-stat-tile">
-                            <span className="answermesh-stat-number">{total_posts ?? 0}</span>
+                            <span className="answermesh-stat-number">{totalCount}</span>
                             <span className="answermesh-stat-label">{__('Total Indexed', 'answermesh')}</span>
                         </div>
                     </div>
 
                     <div className="answermesh-crawl-control">
                         <p className="answermesh-crawl-desc">
-                            {__('Run background batch crawler to inspect heading hierarchy, question clarity, and schema output.', 'answermesh')}
+                            {__('Run site crawler to inspect heading hierarchy, question clarity, and schema output.', 'answermesh')}
                         </p>
                         <Button
                             variant="primary"
@@ -107,7 +135,7 @@ export default function DashboardView({ onNavigateTab }) {
                             disabled={crawling}
                             className="answermesh-primary-action-btn"
                         >
-                            {crawling ? __('Crawling...', 'answermesh') : __('Run Site Analysis', 'answermesh')}
+                            {crawling ? (crawlProgress || __('Auditing...', 'answermesh')) : __('Run Site Analysis', 'answermesh')}
                         </Button>
                     </div>
                 </div>

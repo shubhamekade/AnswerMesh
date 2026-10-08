@@ -58,8 +58,11 @@ class SiteAnalyzer
 
         update_option(self::OPTION_PROGRESS, $progress);
 
-        // Schedule first batch if not already scheduled.
-        if (!wp_next_scheduled(self::CRON_HOOK)) {
+        // Process initial batch immediately for instant feedback
+        $progress = self::process_batch(min(5, count($post_ids)));
+
+        // Schedule next batch if still running and cron not already set.
+        if ($progress['status'] === 'running' && !wp_next_scheduled(self::CRON_HOOK)) {
             wp_schedule_single_event(time() + 2, self::CRON_HOOK);
         }
 
@@ -73,24 +76,16 @@ class SiteAnalyzer
     {
         $progress = get_option(self::OPTION_PROGRESS);
         if (!$progress || $progress['status'] !== 'running' || empty($progress['pending_ids'])) {
-            return $progress ?: ['status' => 'idle'];
+            return $progress ?: ['status' => 'idle', 'total' => 0, 'processed' => 0];
         }
 
         $pending = $progress['pending_ids'];
         $to_process = array_splice($pending, 0, $batch_size);
 
         foreach ($to_process as $post_id) {
-            // Run content analysis.
-            $content_audit = PostAnalyzer::analyze_post((int) $post_id);
-
-            // Extract questions.
-            $post = get_post($post_id);
-            if ($post) {
-                QuestionEngine::extract_questions_from_post((int) $post_id, (string) $post->post_content);
-            }
-
-            // Trust analysis.
-            TrustAnalyzer::evaluate_post((int) $post_id);
+            // Computes and persists SEO, AEO, GEO, Entity, Trust, and Content scores,
+            // extracts questions, audits headings, and generates recommendations via Evidence Model.
+            Score::compute_and_save_post_score((int) $post_id);
 
             $progress['processed']++;
         }
@@ -102,11 +97,14 @@ class SiteAnalyzer
             $progress['status'] = 'completed';
         }
 
+        // Always recompute site-level aggregate score after processing batch
+        Score::compute_and_save_site_score();
+
         update_option(self::OPTION_PROGRESS, $progress);
 
         // Schedule next batch if still running.
         if ($progress['status'] === 'running' && !wp_next_scheduled(self::CRON_HOOK)) {
-            wp_schedule_single_event(time() + 5, self::CRON_HOOK);
+            wp_schedule_single_event(time() + 3, self::CRON_HOOK);
         }
 
         return $progress;

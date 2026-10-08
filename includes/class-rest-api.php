@@ -103,6 +103,13 @@ class RestApi
             'permission_callback' => [$this, 'check_admin_permission'],
         ]);
 
+        // POST /aiseo/v1/crawl/process-batch
+        register_rest_route(self::NAMESPACE, '/crawl/process-batch', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'process_crawl_batch'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
         // GET /aiseo/v1/crawl/status
         register_rest_route(self::NAMESPACE, '/crawl/status', [
             'methods'             => WP_REST_Server::READABLE,
@@ -269,9 +276,27 @@ class RestApi
 
         if (!$site_scores) {
             $site_scores = Score::compute_and_save_site_score();
-        } else {
-            $site_scores['label'] = Score::get_rating_label((int) $site_scores['overall_score']);
         }
+
+        $overall_val = (int) ($site_scores['overall'] ?? $site_scores['overall_score'] ?? 0);
+        $label = $site_scores['label'] ?? Score::get_rating_label($overall_val);
+
+        $normalized_scores = [
+            'overall'       => $overall_val,
+            'overall_score' => $overall_val,
+            'seo'           => (int) ($site_scores['seo'] ?? $site_scores['seo_score'] ?? 0),
+            'seo_score'     => (int) ($site_scores['seo'] ?? $site_scores['seo_score'] ?? 0),
+            'aeo'           => (int) ($site_scores['aeo'] ?? $site_scores['aeo_score'] ?? 0),
+            'aeo_score'     => (int) ($site_scores['aeo'] ?? $site_scores['aeo_score'] ?? 0),
+            'geo'           => (int) ($site_scores['geo'] ?? $site_scores['geo_score'] ?? 0),
+            'geo_score'     => (int) ($site_scores['geo'] ?? $site_scores['geo_score'] ?? 0),
+            'entity'        => (int) ($site_scores['entity'] ?? $site_scores['entity_score'] ?? 0),
+            'entity_score'  => (int) ($site_scores['entity'] ?? $site_scores['entity_score'] ?? 0),
+            'trust'         => (int) ($site_scores['trust'] ?? $site_scores['trust_score'] ?? 0),
+            'trust_score'   => (int) ($site_scores['trust'] ?? $site_scores['trust_score'] ?? 0),
+            'content'       => (int) ($site_scores['content'] ?? 60),
+            'label'         => $label,
+        ];
 
         // Fetch count of pending recommendations.
         $pending_recommendations_count = (int) $wpdb->get_var(
@@ -292,11 +317,16 @@ class RestApi
         return new WP_REST_Response([
             'success' => true,
             'data'    => [
-                'scores'               => $site_scores,
+                'scores'               => $normalized_scores,
+                'rating'               => $label,
                 'pending_actions'      => $pending_recommendations_count,
                 'top_priorities'       => $top_priorities,
+                'priorities'           => $top_priorities,
                 'analyzed_pages_count' => $analyzed_count,
+                'analyzed_posts'       => $analyzed_count,
                 'total_posts_count'    => $total_posts,
+                'total_posts'          => $total_posts,
+                'crawl_status'         => SiteAnalyzer::get_crawl_status(),
             ],
         ], 200);
     }
@@ -429,6 +459,25 @@ class RestApi
         return new WP_REST_Response([
             'success' => true,
             'data'    => SiteAnalyzer::get_crawl_status(),
+        ], 200);
+    }
+
+    /**
+     * POST /crawl/process-batch handler.
+     */
+    public function process_crawl_batch(WP_REST_Request $request): WP_REST_Response
+    {
+        $batch_size = (int) ($request->get_param('batch_size') ?: 5);
+        $progress = SiteAnalyzer::process_batch($batch_size);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'data'    => $progress,
+            'message' => sprintf(
+                __('Processed batch. %d of %d complete.', 'answermesh'),
+                $progress['processed'] ?? 0,
+                $progress['total'] ?? 0
+            ),
         ], 200);
     }
 

@@ -6,14 +6,14 @@
 import { __ } from '@wordpress/i18n';
 
 export default function ScoreGauge({ scores, rating, summary }) {
-    const overall = Number(scores?.overall ?? 0);
+    const overall = Number(scores?.overall ?? scores?.overall_score ?? 0);
     const layers = [
-        { key: 'seo', label: __('Technical SEO', 'answermesh'), weight: '20%', value: scores?.seo ?? 0 },
-        { key: 'aeo', label: __('Answer Engine Optimization (AEO)', 'answermesh'), weight: '20%', value: scores?.aeo ?? 0 },
-        { key: 'geo', label: __('Generative Engine (GEO)', 'answermesh'), weight: '20%', value: scores?.geo ?? 0 },
-        { key: 'entity', label: __('Entity Clarity', 'answermesh'), weight: '15%', value: scores?.entity ?? 0 },
-        { key: 'trust', label: __('Trust & Citations', 'answermesh'), weight: '15%', value: scores?.trust ?? 0 },
-        { key: 'content', label: __('Content Quality', 'answermesh'), weight: '10%', value: scores?.content ?? 0 },
+        { key: 'seo', label: __('Technical SEO', 'answermesh'), weight: '20%', value: scores?.seo ?? scores?.seo_score ?? 0 },
+        { key: 'aeo', label: __('Answer Engine Optimization (AEO)', 'answermesh'), weight: '20%', value: scores?.aeo ?? scores?.aeo_score ?? 0 },
+        { key: 'geo', label: __('Generative Engine (GEO)', 'answermesh'), weight: '20%', value: scores?.geo ?? scores?.geo_score ?? 0 },
+        { key: 'entity', label: __('Entity Clarity', 'answermesh'), weight: '15%', value: scores?.entity ?? scores?.entity_score ?? 0 },
+        { key: 'trust', label: __('Trust & Citations', 'answermesh'), weight: '15%', value: scores?.trust ?? scores?.trust_score ?? 0 },
+        { key: 'content', label: __('Content Quality', 'answermesh'), weight: '10%', value: scores?.content ?? 60 },
     ];
 
     const getScoreColor = (val) => {

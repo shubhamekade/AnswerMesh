@@ -1,0 +1,15 @@
+{
+  "profile": "balanced",
+  "workflow": {
+    "research": false,
+    "plan_check": true,
+    "verifier": true,
+    "branching": "trunk"
+  },
+  "stack": {
+    "php": ">=8.1",
+    "wordpress": ">=6.0",
+    "frontend": "@wordpress/scripts",
+    "database": "MySQL 8.0+ / MariaDB"
+  }
+}

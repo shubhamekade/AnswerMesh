@@ -67,6 +67,10 @@ class Plugin
         $sitemap = new Sitemap();
         $sitemap->init();
 
+        // Initialize site crawler / batch auditor.
+        $site_analyzer = new SiteAnalyzer();
+        $site_analyzer->init();
+
         // Initialize admin menus & assets if in admin area.
         if (is_admin()) {
             $this->admin_menu = new AdminMenu();

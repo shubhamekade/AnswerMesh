@@ -34,11 +34,11 @@
 - [x] **Phase 2: Technical SEO Engine & Structured Data** (Completed — 02-01, 02-02, 02-03 executed)
 - [x] **Phase 3: Content Analyzer & Entity Extraction** (Completed — 03-01, 03-02, 03-03 executed)
 - [x] **Phase 4: Multi-Layer Diagnostic Scoring System** (Completed — 04-01, 04-02, 04-03 executed)
-- [ ] **Phase 5: AI Intelligence Services & Provider Abstraction** (Next up)
+- [ ] **Phase 5: AI Intelligence Services & Provider Abstraction** (Planned — 3 plans ready: 05-01, 05-02, 05-03)
 - [ ] **Phase 6: Admin Dashboard & Editor Experience**
 - [ ] **Phase 7: Verification, Security Hardening & MVP Polish**
 
 ---
 
 ## Next Steps
-Run `/gsd-plan-phase 5` to generate detailed task execution plans for Phase 5 (AI Intelligence Services & Provider Abstraction).
+Run `/gsd-execute-phase 5` to execute Phase 5 plans (AI Provider Interface, OpenAI & Gemini Adapters, Prompt Builder & Diff Generator).

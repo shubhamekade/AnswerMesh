@@ -51,6 +51,22 @@ class Plugin
             $this->check_database_version();
         }
 
+        // Initialize SEO & metadata subsystem.
+        $meta = new Meta();
+        $meta->init();
+
+        // Initialize frontend metadata output.
+        $meta_output = new MetaOutput();
+        $meta_output->init();
+
+        // Initialize frontend schema output.
+        $schema_output = new SchemaOutput();
+        $schema_output->init();
+
+        // Initialize sitemap provider.
+        $sitemap = new Sitemap();
+        $sitemap->init();
+
         // Initialize admin menus & assets if in admin area.
         if (is_admin()) {
             $this->admin_menu = new AdminMenu();

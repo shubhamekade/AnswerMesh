@@ -69,6 +69,13 @@ spl_autoload_register(function (string $class) {
     $admin_path = ANSWERMESH_DIR . 'admin/' . $class_file;
     if (file_exists($admin_path)) {
         require_once $admin_path;
+        return;
+    }
+
+    // Check public directory fallback.
+    $public_path = ANSWERMESH_DIR . 'public/' . $class_file;
+    if (file_exists($public_path)) {
+        require_once $public_path;
     }
 });
 

@@ -1,0 +1,109 @@
+.answermesh-admin-wrap {
+    margin: 20px 20px 0 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.answermesh-container {
+    max-width: 1200px;
+}
+
+.answermesh-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 30px;
+    background: #ffffff;
+    border-radius: 8px;
+    border: 1px solid #dcdcde;
+    margin-bottom: 24px;
+}
+
+.answermesh-header h1 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    font-weight: 700;
+    color: #1d2327;
+}
+
+.answermesh-tagline {
+    margin: 0;
+    color: #646970;
+    font-size: 14px;
+}
+
+.answermesh-badge {
+    background: #f0f0f1;
+    color: #2c3338;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.answermesh-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.answermesh-card {
+    background: #ffffff;
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    padding: 24px;
+}
+
+.answermesh-card h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
+.answermesh-status-list,
+.answermesh-table-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.answermesh-status-list li,
+.answermesh-table-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+.answermesh-status-list li:last-child,
+.answermesh-table-list li:last-child {
+    border-bottom: none;
+}
+
+.answermesh-pill {
+    background: #e7f5ea;
+    color: #007017;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-ok {
+    color: #007017;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.status-missing {
+    color: #d63638;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.answermesh-error {
+    border-left: 4px solid #d63638;
+}

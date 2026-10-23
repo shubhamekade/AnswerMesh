@@ -11,21 +11,30 @@ require_once __DIR__ . '/test-encryption.php';
 require_once __DIR__ . '/test-schema.php';
 require_once __DIR__ . '/test-scoring.php';
 require_once __DIR__ . '/test-evidence-model.php';
+require_once __DIR__ . '/test-cluster.php';
+require_once __DIR__ . '/test-decay-links.php';
+require_once __DIR__ . '/test-visibility.php';
 
 use AnswerMesh\Tests\TestEncryption;
 use AnswerMesh\Tests\TestSchema;
 use AnswerMesh\Tests\TestScoring;
 use AnswerMesh\Tests\TestEvidenceModel;
+use AnswerMesh\Tests\TestCluster;
+use AnswerMesh\Tests\TestDecayLinks;
+use AnswerMesh\Tests\TestVisibility;
 
 echo "====================================================\n";
 echo " AnswerMesh Test Suite Runner (v" . ANSWERMESH_VERSION . ")\n";
 echo "====================================================\n\n";
 
 $suites = [
-    'Encryption & Key Security'     => [TestEncryption::class, 'run'],
-    'Schema.org & Graph Generator'   => [TestSchema::class, 'run'],
-    'Multi-Layer Scoring Engine'    => [TestScoring::class, 'run'],
-    'Evidence Model Recommendations' => [TestEvidenceModel::class, 'run'],
+    'Encryption & Key Security'      => [TestEncryption::class, 'run'],
+    'Schema.org & Graph Generator'    => [TestSchema::class, 'run'],
+    'Multi-Layer Scoring Engine'     => [TestScoring::class, 'run'],
+    'Evidence Model Recommendations'  => [TestEvidenceModel::class, 'run'],
+    'Topic Clusters & Engine'         => [TestCluster::class, 'run'],
+    'Content Decay & Link Graph'      => [TestDecayLinks::class, 'run'],
+    'Observed AI Search Visibility'   => [TestVisibility::class, 'run'],
 ];
 
 $totalPassed = 0;

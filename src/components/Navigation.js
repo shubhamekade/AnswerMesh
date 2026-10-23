@@ -10,6 +10,9 @@ import DashboardView from './DashboardView';
 import RecommendationsView from './RecommendationsView';
 import KnowledgeBaseView from './KnowledgeBaseView';
 import PageAnalysisView from './PageAnalysisView';
+import ClustersView from './ClustersView';
+import LinkDecayView from './LinkDecayView';
+import VisibilityView from './VisibilityView';
 import SettingsView from './SettingsView';
 
 export default function Navigation() {
@@ -21,6 +24,12 @@ export default function Navigation() {
         const page = urlParams.get('page');
         if (page === 'answermesh-knowledge') {
             setCurrentTab('knowledge');
+        } else if (page === 'answermesh-clusters') {
+            setCurrentTab('clusters');
+        } else if (page === 'answermesh-links') {
+            setCurrentTab('links');
+        } else if (page === 'answermesh-visibility') {
+            setCurrentTab('visibility');
         } else if (page === 'answermesh-pages') {
             setCurrentTab('pages');
         } else if (page === 'answermesh-settings') {
@@ -43,6 +52,21 @@ export default function Navigation() {
             name: 'knowledge',
             title: __('Business Knowledge Base', 'answermesh'),
             className: 'answermesh-tab-knowledge',
+        },
+        {
+            name: 'clusters',
+            title: __('Topic Clusters', 'answermesh'),
+            className: 'answermesh-tab-clusters',
+        },
+        {
+            name: 'links',
+            title: __('Links & Freshness', 'answermesh'),
+            className: 'answermesh-tab-links',
+        },
+        {
+            name: 'visibility',
+            title: __('AI Visibility', 'answermesh'),
+            className: 'answermesh-tab-visibility',
         },
         {
             name: 'pages',
@@ -85,6 +109,12 @@ export default function Navigation() {
                             return <RecommendationsView />;
                         case 'knowledge':
                             return <KnowledgeBaseView />;
+                        case 'clusters':
+                            return <ClustersView />;
+                        case 'links':
+                            return <LinkDecayView />;
+                        case 'visibility':
+                            return <VisibilityView />;
                         case 'pages':
                             return <PageAnalysisView />;
                         case 'settings':

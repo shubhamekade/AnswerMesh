@@ -23,6 +23,7 @@ if ($delete_data) {
         $wpdb->prefix . 'aiseo_questions',
         $wpdb->prefix . 'aiseo_recommendations',
         $wpdb->prefix . 'aiseo_visibility',
+        $wpdb->prefix . 'aiseo_clusters',
     ];
 
     foreach ($tables as $table) {

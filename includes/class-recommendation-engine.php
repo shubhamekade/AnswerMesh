@@ -140,6 +140,83 @@ class RecommendationEngine
             ];
         }
 
+        // 8. Topic Cluster Check.
+        $cluster = Cluster::get_for_post($post_id);
+        if (!$cluster) {
+            $recommendations[] = [
+                'type'             => 'cluster_orphan_post',
+                'priority'         => self::PRIORITY_MEDIUM,
+                'confidence'       => 'High',
+                'title'            => __('Assign Post to a Topic Cluster', 'answermesh'),
+                'description'      => __('This article is an isolated orphan page not attached to any semantic topic cluster.', 'answermesh'),
+                'evidence'         => __('Post is not assigned as a pillar or supporting article in wp_aiseo_clusters.', 'answermesh'),
+                'impact'           => __('Topical authority requires interconnected pillar-and-cluster structures for AI search models to map expertise.', 'answermesh'),
+                'recommendation'   => __('Assign this post to an existing topic cluster or nominate it as a pillar page in the Topic Clusters tab.', 'answermesh'),
+                'acceptance_check' => __('Post is registered as an active member or pillar in a topic cluster.', 'answermesh'),
+            ];
+        }
+
+        // 9. Content Decay Check.
+        $freshness = DecayEngine::calculate_post_freshness($post_id);
+        if ($freshness['tier'] === DecayEngine::TIER_CRITICAL || $freshness['tier'] === DecayEngine::TIER_DECAYING) {
+            $is_crit = ($freshness['tier'] === DecayEngine::TIER_CRITICAL);
+            $recommendations[] = [
+                'type'             => 'content_decay_alert',
+                'priority'         => $is_crit ? self::PRIORITY_CRITICAL : self::PRIORITY_HIGH,
+                'confidence'       => 'High',
+                'title'            => $is_crit ? __('Critical Content Decay: Refresh Outdated Article', 'answermesh') : __('Content Aging: Review and Update Facts', 'answermesh'),
+                'description'      => sprintf(__('This post has not been modified in %d days and exhibits significant content decay.', 'answermesh'), $freshness['days_modified']),
+                'evidence'         => sprintf(__('Last updated on %s (%d days ago). Freshness score is %d/100.', 'answermesh'), $freshness['last_modified'], $freshness['days_modified'], $freshness['freshness_score']),
+                'impact'           => __('Generative search engines prioritize verified fresh information and demote outdated pages during citation synthesis.', 'answermesh'),
+                'recommendation'   => __('Review content for updated facts, refresh outdated examples, verify citations, and update the post.', 'answermesh'),
+                'acceptance_check' => __('Post modified date is refreshed and freshness score is restored above 80.', 'answermesh'),
+            ];
+        }
+
+        // 10. Link Graph Orphan Check.
+        $link_metrics = LinkGraph::get_post_link_metrics($post_id);
+        if (($link_metrics['in_degree'] ?? 0) === 0) {
+            $recommendations[] = [
+                'type'             => 'true_orphan_link',
+                'priority'         => self::PRIORITY_HIGH,
+                'confidence'       => 'High',
+                'title'            => __('Resolve True Orphan Page (0 Inbound Internal Links)', 'answermesh'),
+                'description'      => __('No other internal post or page links to this article, creating a dead-end for web crawlers and AI search agents.', 'answermesh'),
+                'evidence'         => __('Sitewide link graph reveals 0 internal hyperlinks pointing to this post URL.', 'answermesh'),
+                'impact'           => __('Unlinked pages receive zero link equity and are frequently overlooked by LLM context builders and search indexes.', 'answermesh'),
+                'recommendation'   => __('Add internal links pointing to this page from relevant cluster articles or the pillar page.', 'answermesh'),
+                'acceptance_check' => __('At least 2 internal hyperlinks point to this post from related published articles.', 'answermesh'),
+            ];
+        }
+
+        // 11. AI Search Visibility Gap Check.
+        $focus_topic = (string) get_post_meta($post_id, '_aiseo_focus_topic', true);
+        if (!empty($focus_topic)) {
+            $vis_obs = Visibility::get_observations(['query' => $focus_topic, 'limit' => 5]);
+            $has_competitor_win = false;
+            $winning_comp = '';
+            foreach ($vis_obs as $obs) {
+                if (!$obs['observed'] && !empty($obs['competitors'])) {
+                    $has_competitor_win = true;
+                    $winning_comp = $obs['competitors'][0]['domain'] ?? 'Competitor';
+                    break;
+                }
+            }
+            if ($has_competitor_win) {
+                $recommendations[] = [
+                    'type'             => 'ai_visibility_gap',
+                    'priority'         => self::PRIORITY_HIGH,
+                    'confidence'       => 'High',
+                    'title'            => sprintf(__('AI Search Visibility Gap on "%s"', 'answermesh'), $focus_topic),
+                    'description'      => sprintf(__('Competitor (%s) was cited in generative search answers for this focus topic while your page was absent.', 'answermesh'), $winning_comp),
+                    'evidence'         => sprintf(__('Recent query sampling for "%s" detected competitor citations but zero citations for this post.', 'answermesh'), $focus_topic),
+                    'impact'           => __('Losing citation share in AI search engines redirects qualified generative traffic to competitors.', 'answermesh'),
+                    'recommendation'   => __('Enhance entity definitions, add concise direct answers, and strengthen internal links to improve citation readiness.', 'answermesh'),
+                    'acceptance_check' => __('Target focus topic appears with citation in subsequent AI search visibility sampling.', 'answermesh'),
+                ];
+            }
+        }
+
         // Sort by priority.
         usort($recommendations, function ($a, $b) {
             $order = [

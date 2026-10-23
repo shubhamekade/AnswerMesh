@@ -71,6 +71,12 @@ class Plugin
         $site_analyzer = new SiteAnalyzer();
         $site_analyzer->init();
 
+        // Register daily visibility check cron hook.
+        add_action('aiseo_daily_visibility_check', [VisibilityRunner::class, 'run_scheduled_sample']);
+        if (!wp_next_scheduled('aiseo_daily_visibility_check')) {
+            wp_schedule_event(time(), 'daily', 'aiseo_daily_visibility_check');
+        }
+
         // Initialize admin menus & assets if in admin area.
         if (is_admin()) {
             $this->admin_menu = new AdminMenu();

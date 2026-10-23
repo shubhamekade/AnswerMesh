@@ -38,6 +38,11 @@ $GLOBALS['mock_transients'] = [];
 class MockWPDB {
     public string $prefix = 'wp_';
     public array $queries = [];
+    public int $insert_id = 1;
+    public array $table_data = [
+        'wp_aiseo_clusters'   => [],
+        'wp_aiseo_visibility' => [],
+    ];
 
     public function prepare(string $query, ...$args): string {
         $offset = 0;
@@ -54,31 +59,132 @@ class MockWPDB {
 
     public function query(string $sql) {
         $this->queries[] = $sql;
+        if (str_contains($sql, 'DELETE FROM wp_aiseo_visibility') && preg_match("/captured_at < '([^']+)'/", $sql, $m)) {
+            $cutoff = $m[1];
+            $count = 0;
+            foreach ($this->table_data['wp_aiseo_visibility'] as $id => $row) {
+                if (($row['captured_at'] ?? '') < $cutoff) {
+                    unset($this->table_data['wp_aiseo_visibility'][$id]);
+                    $count++;
+                }
+            }
+            return $count;
+        }
         return 1;
     }
 
     public function get_var(string $sql) {
         $this->queries[] = $sql;
+        if (str_contains($sql, 'AVG(overall_score)')) {
+            return '75';
+        }
+        if (str_contains($sql, 'COUNT(*) FROM wp_aiseo_visibility')) {
+            return (string) count($this->table_data['wp_aiseo_visibility']);
+        }
         return null;
     }
 
     public function get_row(string $sql, $output = OBJECT) {
         $this->queries[] = $sql;
+        if (str_contains($sql, 'wp_aiseo_clusters') && preg_match('/WHERE id = (\d+)/', $sql, $m)) {
+            $id = (int)$m[1];
+            return $this->table_data['wp_aiseo_clusters'][$id] ?? null;
+        }
+        if (str_contains($sql, 'wp_aiseo_clusters') && preg_match('/WHERE pillar_post_id = (\d+)/', $sql, $m)) {
+            $pid = (int)$m[1];
+            foreach ($this->table_data['wp_aiseo_clusters'] as $row) {
+                if ((int)($row['pillar_post_id'] ?? 0) === $pid) {
+                    return $row;
+                }
+            }
+        }
+        if (str_contains($sql, 'wp_aiseo_visibility') && str_contains($sql, 'COUNT(*) as total_checks')) {
+            $rows = $this->table_data['wp_aiseo_visibility'];
+            $total_checks = count($rows);
+            $total_observed = 0;
+            $total_mentions = 0;
+            $total_citations = 0;
+            foreach ($rows as $r) {
+                if (!empty($r['observed'])) $total_observed++;
+                if (!empty($r['mention'])) $total_mentions++;
+                if (!empty($r['source_url'])) $total_citations++;
+            }
+            return [
+                'total_checks'    => $total_checks,
+                'total_observed'  => $total_observed,
+                'total_mentions'  => $total_mentions,
+                'total_citations' => $total_citations,
+            ];
+        }
         return null;
     }
 
     public function get_results(string $sql, $output = OBJECT) {
         $this->queries[] = $sql;
+        if (str_contains($sql, 'wp_aiseo_clusters')) {
+            return array_values($this->table_data['wp_aiseo_clusters']);
+        }
+        if (str_contains($sql, 'wp_aiseo_visibility')) {
+            if (str_contains($sql, 'GROUP BY platform')) {
+                $grouped = [];
+                foreach ($this->table_data['wp_aiseo_visibility'] as $r) {
+                    $p = $r['platform'] ?? 'unknown';
+                    if (!isset($grouped[$p])) {
+                        $grouped[$p] = ['platform' => $p, 'count' => 0, 'observed' => 0, 'mentions' => 0, 'citations' => 0];
+                    }
+                    $grouped[$p]['count']++;
+                    if (!empty($r['observed'])) $grouped[$p]['observed']++;
+                    if (!empty($r['mention'])) $grouped[$p]['mentions']++;
+                    if (!empty($r['source_url'])) $grouped[$p]['citations']++;
+                }
+                return array_values($grouped);
+            }
+            return array_values($this->table_data['wp_aiseo_visibility']);
+        }
         return [];
     }
 
     public function insert(string $table, array $data, $format = null) {
         $this->queries[] = "INSERT INTO $table";
+        if ($table === 'wp_aiseo_clusters') {
+            $id = $this->insert_id++;
+            $data['id'] = $id;
+            $this->table_data['wp_aiseo_clusters'][$id] = $data;
+            return 1;
+        }
+        if ($table === 'wp_aiseo_visibility') {
+            $id = $this->insert_id++;
+            $data['id'] = $id;
+            $this->table_data['wp_aiseo_visibility'][$id] = $data;
+            return 1;
+        }
         return 1;
     }
 
     public function update(string $table, array $data, array $where, $format = null, $where_format = null) {
         $this->queries[] = "UPDATE $table";
+        if ($table === 'wp_aiseo_clusters' && isset($where['id'])) {
+            $id = (int)$where['id'];
+            if (isset($this->table_data['wp_aiseo_clusters'][$id])) {
+                $this->table_data['wp_aiseo_clusters'][$id] = array_merge($this->table_data['wp_aiseo_clusters'][$id], $data);
+            }
+            return 1;
+        }
+        return 1;
+    }
+
+    public function delete(string $table, array $where, $where_format = null) {
+        $this->queries[] = "DELETE FROM $table";
+        if ($table === 'wp_aiseo_clusters' && isset($where['id'])) {
+            $id = (int)$where['id'];
+            unset($this->table_data['wp_aiseo_clusters'][$id]);
+            return 1;
+        }
+        if ($table === 'wp_aiseo_visibility' && isset($where['id'])) {
+            $id = (int)$where['id'];
+            unset($this->table_data['wp_aiseo_visibility'][$id]);
+            return 1;
+        }
         return 1;
     }
 }

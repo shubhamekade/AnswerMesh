@@ -158,6 +158,125 @@ class RestApi
             'callback'            => [$this, 'apply_diff'],
             'permission_callback' => [$this, 'check_editor_permission'],
         ]);
+
+        // GET /aiseo/v1/clusters
+        register_rest_route(self::NAMESPACE, '/clusters', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_clusters'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/clusters
+        register_rest_route(self::NAMESPACE, '/clusters', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'create_cluster'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/clusters/orphans
+        register_rest_route(self::NAMESPACE, '/clusters/orphans', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_orphan_posts'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/clusters/auto-discover
+        register_rest_route(self::NAMESPACE, '/clusters/auto-discover', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'auto_discover_clusters'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/clusters/{id}
+        register_rest_route(self::NAMESPACE, '/clusters/(?P<id>\d+)', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_cluster'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // PUT/POST /aiseo/v1/clusters/{id}
+        register_rest_route(self::NAMESPACE, '/clusters/(?P<id>\d+)', [
+            'methods'             => WP_REST_Server::EDITABLE,
+            'callback'            => [$this, 'update_cluster'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // DELETE /aiseo/v1/clusters/{id}
+        register_rest_route(self::NAMESPACE, '/clusters/(?P<id>\d+)', [
+            'methods'             => WP_REST_Server::DELETABLE,
+            'callback'            => [$this, 'delete_cluster'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/decay/inventory
+        register_rest_route(self::NAMESPACE, '/decay/inventory', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_decay_inventory'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/decay/summary
+        register_rest_route(self::NAMESPACE, '/decay/summary', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_decay_summary'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/links/graph
+        register_rest_route(self::NAMESPACE, '/links/graph', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_link_graph'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/links/orphans
+        register_rest_route(self::NAMESPACE, '/links/orphans', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_link_orphans'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/links/opportunities
+        register_rest_route(self::NAMESPACE, '/links/opportunities', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_link_opportunities'],
+            'permission_callback' => [$this, 'check_editor_permission'],
+        ]);
+
+        // GET /aiseo/v1/visibility/summary
+        register_rest_route(self::NAMESPACE, '/visibility/summary', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_visibility_summary'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/visibility/observations
+        register_rest_route(self::NAMESPACE, '/visibility/observations', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_visibility_observations'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/visibility/run-sample
+        register_rest_route(self::NAMESPACE, '/visibility/run-sample', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'run_visibility_sample'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/visibility/competitors
+        register_rest_route(self::NAMESPACE, '/visibility/competitors', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_visibility_competitors'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // DELETE /aiseo/v1/visibility/prune
+        register_rest_route(self::NAMESPACE, '/visibility/prune', [
+            'methods'             => WP_REST_Server::DELETABLE,
+            'callback'            => [$this, 'prune_visibility_records'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
     }
 
     /**
@@ -624,4 +743,323 @@ class RestApi
             'message' => $applied ? __('Proposal successfully applied.', 'answermesh') : __('Failed to apply proposal.', 'answermesh'),
         ], $applied ? 200 : 500);
     }
+
+    /**
+     * GET /clusters handler.
+     */
+    public function get_clusters(WP_REST_Request $request): WP_REST_Response
+    {
+        $clusters = Cluster::get_all();
+
+        return new WP_REST_Response([
+            'success' => true,
+            'count'   => count($clusters),
+            'clusters' => $clusters,
+        ], 200);
+    }
+
+    /**
+     * GET /clusters/{id} handler.
+     */
+    public function get_cluster(WP_REST_Request $request): WP_REST_Response
+    {
+        $id = (int) $request->get_param('id');
+        $cluster = Cluster::get($id);
+
+        if (!$cluster) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Cluster not found.', 'answermesh'),
+            ], 404);
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'cluster' => $cluster,
+        ], 200);
+    }
+
+    /**
+     * POST /clusters handler.
+     */
+    public function create_cluster(WP_REST_Request $request): WP_REST_Response
+    {
+        $params = $request->get_json_params() ?: [];
+        $name = sanitize_text_field($params['name'] ?? '');
+
+        if (empty($name)) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Cluster name is required.', 'answermesh'),
+            ], 400);
+        }
+
+        $cluster_id = Cluster::create($params);
+
+        if (!$cluster_id) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Failed to create cluster.', 'answermesh'),
+            ], 500);
+        }
+
+        $cluster = Cluster::get($cluster_id);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'message' => __('Cluster created successfully.', 'answermesh'),
+            'cluster' => $cluster,
+        ], 201);
+    }
+
+    /**
+     * PUT/POST /clusters/{id} handler.
+     */
+    public function update_cluster(WP_REST_Request $request): WP_REST_Response
+    {
+        $id = (int) $request->get_param('id');
+        $params = $request->get_json_params() ?: [];
+
+        $existing = Cluster::get($id);
+        if (!$existing) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Cluster not found.', 'answermesh'),
+            ], 404);
+        }
+
+        $updated = Cluster::update($id, $params);
+
+        if (!$updated) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Failed to update cluster or no changes made.', 'answermesh'),
+            ], 400);
+        }
+
+        // Recalculate score
+        Cluster::calculate_cluster_score($id);
+        $cluster = Cluster::get($id);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'message' => __('Cluster updated successfully.', 'answermesh'),
+            'cluster' => $cluster,
+        ], 200);
+    }
+
+    /**
+     * DELETE /clusters/{id} handler.
+     */
+    public function delete_cluster(WP_REST_Request $request): WP_REST_Response
+    {
+        $id = (int) $request->get_param('id');
+        $existing = Cluster::get($id);
+
+        if (!$existing) {
+            return new WP_REST_Response([
+                'success' => false,
+                'message' => __('Cluster not found.', 'answermesh'),
+            ], 404);
+        }
+
+        $deleted = Cluster::delete($id);
+
+        return new WP_REST_Response([
+            'success' => $deleted,
+            'message' => $deleted ? __('Cluster deleted successfully.', 'answermesh') : __('Failed to delete cluster.', 'answermesh'),
+        ], $deleted ? 200 : 500);
+    }
+
+    /**
+     * GET /clusters/orphans handler.
+     */
+    public function get_orphan_posts(WP_REST_Request $request): WP_REST_Response
+    {
+        $orphans = ClusterEngine::get_orphan_posts();
+
+        return new WP_REST_Response([
+            'success' => true,
+            'count'   => count($orphans),
+            'orphans' => $orphans,
+        ], 200);
+    }
+
+    /**
+     * POST /clusters/auto-discover handler.
+     */
+    public function auto_discover_clusters(WP_REST_Request $request): WP_REST_Response
+    {
+        $discovered = ClusterEngine::discover_clusters();
+
+        return new WP_REST_Response([
+            'success'    => true,
+            'discovered' => $discovered,
+        ], 200);
+    }
+
+    /**
+     * GET /decay/inventory handler.
+     */
+    public function get_decay_inventory(WP_REST_Request $request): WP_REST_Response
+    {
+        $tier = $request->get_param('tier');
+        $inventory = DecayEngine::get_decay_inventory(['tier' => $tier]);
+
+        return new WP_REST_Response([
+            'success'   => true,
+            'count'     => count($inventory),
+            'inventory' => $inventory,
+        ], 200);
+    }
+
+    /**
+     * GET /decay/summary handler.
+     */
+    public function get_decay_summary(WP_REST_Request $request): WP_REST_Response
+    {
+        $summary = DecayEngine::get_site_decay_summary();
+
+        return new WP_REST_Response([
+            'success' => true,
+            'summary' => $summary,
+        ], 200);
+    }
+
+    /**
+     * GET /links/graph handler.
+     */
+    public function get_link_graph(WP_REST_Request $request): WP_REST_Response
+    {
+        $graph = LinkGraph::build_graph();
+
+        return new WP_REST_Response([
+            'success' => true,
+            'graph'   => $graph,
+        ], 200);
+    }
+
+    /**
+     * GET /links/orphans handler.
+     */
+    public function get_link_orphans(WP_REST_Request $request): WP_REST_Response
+    {
+        $orphans = LinkGraph::get_orphan_pages();
+
+        return new WP_REST_Response([
+            'success' => true,
+            'count'   => count($orphans),
+            'orphans' => $orphans,
+        ], 200);
+    }
+
+    /**
+     * GET /links/opportunities handler.
+     */
+    public function get_link_opportunities(WP_REST_Request $request): WP_REST_Response
+    {
+        $post_id = (int) $request->get_param('post_id');
+        $opportunities = LinkGraph::find_link_opportunities($post_id);
+
+        return new WP_REST_Response([
+            'success'       => true,
+            'count'         => count($opportunities),
+            'opportunities' => $opportunities,
+        ], 200);
+    }
+
+    /**
+     * GET /visibility/summary handler.
+     */
+    public function get_visibility_summary(WP_REST_Request $request): WP_REST_Response
+    {
+        $days = (int) ($request->get_param('days') ?: 30);
+        $summary = Visibility::get_summary($days);
+        $index = VisibilityRunner::calculate_visibility_index($days);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'summary' => $summary,
+            'index'   => $index,
+        ], 200);
+    }
+
+    /**
+     * GET /visibility/observations handler.
+     */
+    public function get_visibility_observations(WP_REST_Request $request): WP_REST_Response
+    {
+        $args = [
+            'platform'  => $request->get_param('platform'),
+            'query'     => $request->get_param('query'),
+            'observed'  => $request->get_param('observed'),
+            'from_date' => $request->get_param('from_date'),
+            'to_date'   => $request->get_param('to_date'),
+            'limit'     => (int) ($request->get_param('limit') ?: 50),
+            'offset'    => (int) ($request->get_param('offset') ?: 0),
+        ];
+
+        $observations = Visibility::get_observations($args);
+        $total = Visibility::get_total_count($args);
+
+        return new WP_REST_Response([
+            'success'      => true,
+            'total'        => $total,
+            'count'        => count($observations),
+            'observations' => $observations,
+        ], 200);
+    }
+
+    /**
+     * POST /visibility/run-sample handler.
+     */
+    public function run_visibility_sample(WP_REST_Request $request): WP_REST_Response
+    {
+        $query = sanitize_text_field((string) $request->get_param('query'));
+        $platform = sanitize_key((string) ($request->get_param('platform') ?: 'all'));
+
+        if (!empty($query)) {
+            $result = VisibilityRunner::sample_query($query, $platform);
+        } else {
+            $batch_size = (int) ($request->get_param('batch_size') ?: 3);
+            $result = VisibilityRunner::run_scheduled_sample($batch_size);
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'result'  => $result,
+        ], 200);
+    }
+
+    /**
+     * GET /visibility/competitors handler.
+     */
+    public function get_visibility_competitors(WP_REST_Request $request): WP_REST_Response
+    {
+        $limit = (int) ($request->get_param('limit') ?: 10);
+        $days = (int) ($request->get_param('days') ?: 30);
+        $competitors = VisibilityRunner::get_top_competitors($limit, $days);
+
+        return new WP_REST_Response([
+            'success'     => true,
+            'count'       => count($competitors),
+            'competitors' => $competitors,
+        ], 200);
+    }
+
+    /**
+     * DELETE /visibility/prune handler.
+     */
+    public function prune_visibility_records(WP_REST_Request $request): WP_REST_Response
+    {
+        $days = (int) ($request->get_param('days') ?: 90);
+        $deleted = Visibility::prune_old_records($days);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'deleted' => $deleted,
+            'message' => sprintf(__('Pruned %d records older than %d days.', 'answermesh'), $deleted, $days),
+        ], 200);
+    }
 }
+

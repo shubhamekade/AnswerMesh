@@ -296,6 +296,14 @@ export default function AnswerMeshSidebar() {
                 )}
             </PanelBody>
 
+            {/* Internal Link Opportunities Panel */}
+            <PanelBody title={__('Internal Link Opportunities', 'answermesh')} initialOpen={true}>
+                <p style={{ fontSize: '12px', color: '#646970', marginBottom: '10px' }}>
+                    {__('High-value internal link recommendations to establish topical depth and resolve orphan content:', 'answermesh')}
+                </p>
+                <LinkOpportunitiesList postId={postId} />
+            </PanelBody>
+
             {/* Diff Preview & Approval Modal */}
             <DiffModal
                 isOpen={diffModalOpen}
@@ -306,6 +314,71 @@ export default function AnswerMeshSidebar() {
                 proposedContent={diffProposal?.proposedContent}
                 isApplying={isApplying}
             />
+        </div>
+    );
+}
+
+function LinkOpportunitiesList({ postId }) {
+    const [opps, setOpps] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [copiedIdx, setCopiedIdx] = useState(null);
+
+    useEffect(() => {
+        if (!postId) return;
+        setLoading(true);
+        apiFetch({ path: `/aiseo/v1/links/opportunities?post_id=${postId}` })
+            .then((res) => {
+                setOpps(res.opportunities || []);
+                setLoading(false);
+            })
+            .catch(() => {
+                setOpps([]);
+                setLoading(false);
+            });
+    }, [postId]);
+
+    if (loading) {
+        return (
+            <div style={{ textAlign: 'center', padding: '12px' }}>
+                <Spinner />
+            </div>
+        );
+    }
+
+    if (opps.length === 0) {
+        return (
+            <p style={{ fontSize: '12px', color: '#646970' }}>
+                {__('No link opportunities found for this post yet.', 'answermesh')}
+            </p>
+        );
+    }
+
+    return (
+        <div className="answermesh-sidebar-opp-list">
+            {opps.slice(0, 5).map((opp, idx) => (
+                <div key={idx} className="answermesh-sidebar-opp-item">
+                    <div className="opp-meta">
+                        <span className="opp-target-title">
+                            {__('Link to:', 'answermesh')} <strong>{opp.target_title}</strong>
+                        </span>
+                        <span className="opp-anchor-tag">"{opp.anchor}"</span>
+                    </div>
+                    <p className="opp-snippet-text">{opp.context_snippet}</p>
+                    <div className="opp-btn-row">
+                        <Button
+                            variant="secondary"
+                            isSmall
+                            onClick={() => {
+                                navigator.clipboard.writeText(`<a href="${opp.target_url}">${opp.anchor}</a>`);
+                                setCopiedIdx(idx);
+                                setTimeout(() => setCopiedIdx(null), 2000);
+                            }}
+                        >
+                            {copiedIdx === idx ? __('Copied! ✓', 'answermesh') : __('Copy Link HTML', 'answermesh')}
+                        </Button>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }

@@ -13,7 +13,7 @@ defined('ABSPATH') || exit;
 
 class Database
 {
-    public const DB_VERSION = '1.0.0';
+    public const DB_VERSION = '1.1.0';
     public const OPTION_NAME = 'answermesh_db_version';
 
     /**
@@ -32,6 +32,7 @@ class Database
         $table_questions = $wpdb->prefix . 'aiseo_questions';
         $table_recommendations = $wpdb->prefix . 'aiseo_recommendations';
         $table_visibility = $wpdb->prefix . 'aiseo_visibility';
+        $table_clusters = $wpdb->prefix . 'aiseo_clusters';
 
         $sql = "
 CREATE TABLE {$table_scores} (
@@ -109,6 +110,22 @@ CREATE TABLE {$table_visibility} (
   KEY query (query(191)),
   KEY platform (platform)
 ) {$charset_collate};
+
+CREATE TABLE {$table_clusters} (
+  id bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  name varchar(255) NOT NULL,
+  slug varchar(255) NOT NULL,
+  pillar_post_id bigint(20) unsigned DEFAULT 0,
+  posts_json longtext,
+  entities_json text,
+  coverage_score tinyint(3) unsigned NOT NULL DEFAULT 0,
+  subtopics_json text,
+  created_at datetime NOT NULL,
+  updated_at datetime NOT NULL,
+  PRIMARY KEY  (id),
+  KEY slug (slug(191)),
+  KEY pillar_post_id (pillar_post_id)
+) {$charset_collate};
 ";
 
         dbDelta($sql);
@@ -131,6 +148,7 @@ CREATE TABLE {$table_visibility} (
             'aiseo_questions',
             'aiseo_recommendations',
             'aiseo_visibility',
+            'aiseo_clusters',
         ];
 
         $status = [];
@@ -156,6 +174,7 @@ CREATE TABLE {$table_visibility} (
             $wpdb->prefix . 'aiseo_questions',
             $wpdb->prefix . 'aiseo_recommendations',
             $wpdb->prefix . 'aiseo_visibility',
+            $wpdb->prefix . 'aiseo_clusters',
         ];
 
         foreach ($tables as $table) {

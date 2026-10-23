@@ -1,11 +1,40 @@
 # Project: AnswerMesh
 
 **Type:** WordPress Plugin  
-**Version:** 1.0 (MVP)  
-**Status:** Initialized  
+**Version:** 1.2 (Milestone 3 Next)  
+**Status:** Milestone 3 Active  
 **Category:** AI Search Visibility, AEO, GEO & SEO for WordPress  
 **Tagline:** Make your website understandable, trustworthy, and cite-ready for AI search.  
 **Reference Document:** [answermesh-prd.md](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/docs/answermesh-prd.md)
+
+---
+
+## Current State
+
+- **Shipped Milestones:**
+  - **Milestone 1 — AnswerMesh MVP (v1.0)**: Shipped 2026-10-16 ([Audit](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/v1.0-MILESTONE-AUDIT.md) — 29/29 requirements).
+  - **Milestone 2 — Topic Clusters, Content Decay & Internal Links (v1.1)**: Shipped 2026-10-16 ([Audit](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/v1.1-MILESTONE-AUDIT.md) — 14/14 requirements).
+  - **Milestone 3 — Observed AI Search Visibility Monitoring (v1.2)**: Shipped 2026-10-16 ([Audit](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/v1.2-MILESTONE-AUDIT.md) — 10/10 requirements).
+- **Active Milestone:** Milestone 4 — WooCommerce & Agency Engine (Phase 11).
+- **Milestone Archives:**
+  - [Milestone 1 Archived Roadmap](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/milestones/v1.0-ROADMAP.md)
+  - [Milestone 1 Archived Requirements](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/milestones/v1.0-REQUIREMENTS.md)
+  - [Milestone 2 Archived Roadmap](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/milestones/v1.1-ROADMAP.md)
+  - [Milestone 2 Archived Requirements](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/milestones/v1.1-REQUIREMENTS.md)
+  - [Milestone 3 Archived Roadmap](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/milestones/v1.2-ROADMAP.md)
+  - [Milestone 3 Archived Requirements](file:///d:/Projects/Wordpress%20Plugins/AnswerMesh/.planning/milestones/v1.2-REQUIREMENTS.md)
+
+---
+
+## Active Milestone Goals: Milestone 4 (Phase 11)
+
+1. **Phase 11: WooCommerce Structured Commerce & Agency Engine**
+   - Rich e-commerce entity schema (`Product`, `Offer`, `MerchantReturnPolicy`, `AggregateRating`).
+   - Automated product question generation & buying guide generator.
+   - Multi-site / network-level settings synchronization.
+   - White-label branding customization and centralized agency reporting export.
+
+
 
 ---
 
@@ -45,7 +74,7 @@ The plugin will **never** claim its score is an official search engine ranking s
 ## 3. Technology Stack & Architecture
 
 - **Platform:** WordPress 6.x+, PHP 8.1+
-- **Database:** MySQL 8.0+ / MariaDB with custom tables for high-volume analytics (`wp_aiseo_scores`, `wp_aiseo_entities`, `wp_aiseo_questions`, `wp_aiseo_recommendations`, `wp_aiseo_visibility`).
+- **Database:** MySQL 8.0+ / MariaDB with custom tables for high-volume analytics (`wp_aiseo_scores`, `wp_aiseo_entities`, `wp_aiseo_questions`, `wp_aiseo_recommendations`, `wp_aiseo_visibility`, `wp_aiseo_clusters`).
 - **Admin UI & Editor:** React built with `@wordpress/scripts`, `@wordpress/element`, `@wordpress/components`, WordPress REST API, `@wordpress/api-fetch`.
 - **Block Editor Integration:** Gutenberg sidebar panel + filter hooks for classic editor and visual builders (Elementor/Divi compatible via post meta and `the_content` hooks).
 - **AI Engine:** Pluggable server-side provider abstraction (`AIProviderInterface`) supporting OpenAI, Google Gemini, Anthropic, OpenRouter, with secure server-side encrypted credentials and offline/no-AI fallback.
@@ -54,19 +83,7 @@ The plugin will **never** claim its score is an official search engine ranking s
 
 ---
 
-## 4. MVP Core Goals (Milestones 1–7)
-
-1. **Milestone 1 — Foundation:** Plugin bootstrap, activation hooks, custom tables migration, settings management, REST API endpoints, React admin shell.
-2. **Milestone 2 — SEO & Schema Engine:** Metadata generation, Schema JSON-LD builder (Organization, LocalBusiness, Person, Article, Service, FAQPage, etc.), conflict detector, XML sitemaps, compatibility mode.
-3. **Milestone 3 — Content & Entity Analyzer:** Content parser, heading hierarchy audit, question discovery, entity extraction, internal link analyzer, trust signal evaluator, bounded crawler (50/500/5000 limits).
-4. **Milestone 4 — Diagnostic Scoring System:** Diagnostic scoring algorithm (SEO 20%, AEO 20%, GEO 20%, Entity 15%, Trust 15%, Content 10%), Evidence model (Finding, Evidence, Impact, Recommendation, Priority, Confidence, Acceptance Check).
-5. **Milestone 5 — AI Intelligence Services:** Server-side AI provider abstraction (OpenAI, Gemini), safe prompt constructor with business knowledge context, AI content recommendations, diff generation, offline fallback.
-6. **Milestone 6 — Admin Dashboard & Editor Sidebar:** React dashboard with score gauge, priority recommendations list, Gutenberg sidebar panel, preview-and-approval diff workflow before applying changes.
-7. **Milestone 7 — Verification & Hardening:** PHPUnit test suite, REST permission checks, security sanitization, performance profiling, documentation.
-
----
-
-## 5. Non-Goals & Safety Constraints
+## 4. Non-Goals & Safety Constraints
 
 - No ranking guarantees or citation promises.
 - No automated mass publishing or unapproved content alterations.

@@ -151,6 +151,15 @@ class VisibilityRunner
         if (!empty($site_name) && str_contains($lowered_text, $site_name)) {
             $mention = true;
             $observed = true;
+        } else {
+            $name_tokens = array_filter(explode(' ', $site_name), fn($token) => strlen($token) >= 4);
+            foreach ($name_tokens as $token) {
+                if (str_contains($lowered_text, $token)) {
+                    $mention = true;
+                    $observed = true;
+                    break;
+                }
+            }
         }
 
         // 3. Position context snippet

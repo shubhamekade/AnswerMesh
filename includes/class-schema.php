@@ -34,12 +34,24 @@ class Schema
             $graph[] = $org_schema;
         }
 
-        // 3. Post / Page / Article Schema if singular.
+        // 3. Post / Page / Article / Product Schema if singular.
         if (is_singular()) {
             $post_id = (int) get_the_ID();
-            $post_schema = self::build_post_schema($post_id);
-            if (!empty($post_schema)) {
-                $graph[] = $post_schema;
+            $post = get_post($post_id);
+            if ($post && $post->post_type === 'product' && WooCommerceSchema::is_safe_commerce_context()) {
+                $product_schema = WooCommerceSchema::build_product_schema($post_id);
+                if (!empty($product_schema)) {
+                    $graph[] = $product_schema;
+                }
+                $faq_schema = ProductQuestionEngine::build_faq_schema($post_id);
+                if (!empty($faq_schema)) {
+                    $graph[] = $faq_schema;
+                }
+            } else {
+                $post_schema = self::build_post_schema($post_id);
+                if (!empty($post_schema)) {
+                    $graph[] = $post_schema;
+                }
             }
 
             // BreadcrumbList.
@@ -127,6 +139,10 @@ class Schema
         $post = get_post($post_id);
         if (!$post) {
             return [];
+        }
+
+        if ($post->post_type === 'product') {
+            return WooCommerceSchema::build_product_schema($post_id);
         }
 
         $home_url = trailingslashit(home_url());

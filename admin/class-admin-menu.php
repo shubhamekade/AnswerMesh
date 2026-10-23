@@ -29,11 +29,12 @@ class AdminMenu
     public function register_menu_pages(): void
     {
         $capability = 'manage_options';
+        $brand_name = (string) apply_filters('answermesh_brand_name', 'AnswerMesh');
 
         // Main Menu: Dashboard.
         add_menu_page(
-            __('AnswerMesh — AI Search Visibility', 'answermesh'),
-            __('AnswerMesh', 'answermesh'),
+            sprintf(__('%s — AI Search Visibility', 'answermesh'), $brand_name),
+            $brand_name,
             $capability,
             self::MENU_SLUG,
             [$this, 'render_app_container'],

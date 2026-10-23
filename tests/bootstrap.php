@@ -146,16 +146,11 @@ class MockWPDB {
 
     public function insert(string $table, array $data, $format = null) {
         $this->queries[] = "INSERT INTO $table";
-        if ($table === 'wp_aiseo_clusters') {
-            $id = $this->insert_id++;
+        if ($table === 'wp_aiseo_clusters' || $table === 'wp_aiseo_visibility') {
+            $id = count($this->table_data[$table]) + 1;
+            $this->insert_id = $id;
             $data['id'] = $id;
-            $this->table_data['wp_aiseo_clusters'][$id] = $data;
-            return 1;
-        }
-        if ($table === 'wp_aiseo_visibility') {
-            $id = $this->insert_id++;
-            $data['id'] = $id;
-            $this->table_data['wp_aiseo_visibility'][$id] = $data;
+            $this->table_data[$table][$id] = $data;
             return 1;
         }
         return 1;
@@ -204,7 +199,11 @@ function update_option(string $key, $value): bool {
 function get_post_meta(int $post_id, string $key = '', bool $single = false) {
     if (!isset($GLOBALS['mock_postmeta'][$post_id])) return $single ? '' : [];
     if ($key === '') return $GLOBALS['mock_postmeta'][$post_id];
-    return $GLOBALS['mock_postmeta'][$post_id][$key] ?? ($single ? '' : []);
+    $val = $GLOBALS['mock_postmeta'][$post_id][$key] ?? ($single ? '' : []);
+    if ($single && is_array($val)) {
+        return $val[0] ?? '';
+    }
+    return $val;
 }
 
 function update_post_meta(int $post_id, string $key, $value): bool {
@@ -217,8 +216,12 @@ function update_post_meta(int $post_id, string $key, $value): bool {
 
 function get_post($post = null) {
     if (is_object($post)) return $post;
+    $id = (int)$post;
+    if ($id === 501 && !empty($GLOBALS['mock_post_product'])) {
+        return $GLOBALS['mock_post_product'];
+    }
     return (object)[
-        'ID' => (int)$post,
+        'ID' => $id,
         'post_title' => 'Sample Article Title',
         'post_content' => '<h2>What is AI Search?</h2><p>AI search is an evolution of search engines that synthesizes direct answers.</p>',
         'post_excerpt' => 'Sample excerpt for search test.',
@@ -234,6 +237,16 @@ function get_post($post = null) {
 
 function get_post_ancestors($post): array {
     return [];
+}
+
+function get_posts(array $args = []): array {
+    if (!empty($GLOBALS['mock_category_products']) && ($args['post_type'] ?? '') === 'product') {
+        return $GLOBALS['mock_category_products'];
+    }
+    return [
+        get_post(1),
+        get_post(2),
+    ];
 }
 
 function get_the_category($post_id = false): array {
@@ -374,8 +387,34 @@ function sanitize_textarea_field(string $str): string {
     return trim(strip_tags($str));
 }
 
-function current_time(string $type = 'mysql'): string {
+function sanitize_title(string $title, string $fallback_title = '', string $context = 'save'): string {
+    $title = strtolower(trim($title));
+    $title = preg_replace('/[^a-z0-9_\-\s]/', '', $title);
+    $title = preg_replace('/[\s_]+/', '-', $title);
+    return trim($title, '-');
+}
+
+function wp_parse_url(string $url, int $component = -1) {
+    return parse_url($url, $component);
+}
+
+function get_post_modified_time(string $format = 'U', bool $gmt = false, $post = null, bool $translate = false) {
+    return time();
+}
+
+function get_post_time(string $format = 'U', bool $gmt = false, $post = null, bool $translate = false) {
+    return time();
+}
+
+function current_time(string $type = 'mysql') {
+    if ($type === 'timestamp') {
+        return time();
+    }
     return date('Y-m-d H:i:s');
+}
+
+function get_edit_post_link(int $id = 0, string $context = 'display'): string {
+    return 'http://example.com/wp-admin/post.php?post=' . $id . '&action=edit';
 }
 
 function get_locale(): string {
@@ -397,8 +436,37 @@ function delete_transient(string $key): bool {
 }
 
 function add_action(string $hook, $callback, int $priority = 10, int $accepted_args = 1): void {}
+function add_shortcode(string $tag, $callback): void {
+    $GLOBALS['mock_shortcodes'][$tag] = $callback;
+}
+
+function shortcode_atts(array $pairs, $atts, string $shortcode = ''): array {
+    $out = [];
+    $atts = (array) $atts;
+    foreach ($pairs as $name => $default) {
+        if (array_key_exists($name, $atts)) {
+            $out[$name] = $atts[$name];
+        } else {
+            $out[$name] = $default;
+        }
+    }
+    return $out;
+}
 function do_action(string $hook, ...$args): void {}
-function apply_filters(string $hook, $value, ...$args) { return $value; }
+
+$GLOBALS['mock_filters'] = [];
+function add_filter(string $hook, $callback, int $priority = 10, int $accepted_args = 1): void {
+    $GLOBALS['mock_filters'][$hook][] = $callback;
+}
+
+function apply_filters(string $hook, $value, ...$args) {
+    if (!empty($GLOBALS['mock_filters'][$hook])) {
+        foreach ($GLOBALS['mock_filters'][$hook] as $cb) {
+            $value = call_user_func($cb, $value, ...$args);
+        }
+    }
+    return $value;
+}
 function __(string $text, string $domain = 'default'): string { return $text; }
 function esc_html__(string $text, string $domain = 'default'): string { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }
 function esc_attr__(string $text, string $domain = 'default'): string { return htmlspecialchars($text, ENT_QUOTES, 'UTF-8'); }

@@ -66,9 +66,16 @@ class SchemaOutput
         }
 
         if (!empty($json_ld)) {
-            echo "\n<!-- AnswerMesh Structured Data / Schema.org JSON-LD -->\n";
+            $brand_name = class_exists('AnswerMesh\WhiteLabel') ? WhiteLabel::get_plugin_name() : 'AnswerMesh';
+            $hide_credits = class_exists('AnswerMesh\WhiteLabel') && WhiteLabel::is_credits_hidden();
+
+            if (!$hide_credits) {
+                printf("\n<!-- %s Structured Data / Schema.org JSON-LD -->\n", esc_html($brand_name));
+            }
             printf("<script type=\"application/ld+json\" class=\"answermesh-schema-graph\">\n%s\n</script>\n", $json_ld); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-            echo "<!-- /AnswerMesh Structured Data -->\n\n";
+            if (!$hide_credits) {
+                printf("<!-- /%s Structured Data -->\n\n", esc_html($brand_name));
+            }
         }
     }
 }

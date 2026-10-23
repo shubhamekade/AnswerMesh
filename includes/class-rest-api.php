@@ -277,6 +277,76 @@ class RestApi
             'callback'            => [$this, 'prune_visibility_records'],
             'permission_callback' => [$this, 'check_admin_permission'],
         ]);
+
+        // GET /aiseo/v1/commerce/status
+        register_rest_route(self::NAMESPACE, '/commerce/status', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_commerce_status'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/commerce/product/(?P<id>\d+)/schema
+        register_rest_route(self::NAMESPACE, '/commerce/product/(?P<id>\d+)/schema', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_product_schema'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/commerce/product/(?P<id>\d+)/qa
+        register_rest_route(self::NAMESPACE, '/commerce/product/(?P<id>\d+)/qa', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_product_qa'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/commerce/buying-guide
+        register_rest_route(self::NAMESPACE, '/commerce/buying-guide', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_commerce_buying_guide'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/commerce/categories
+        register_rest_route(self::NAMESPACE, '/commerce/categories', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_commerce_categories'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/agency/white-label
+        register_rest_route(self::NAMESPACE, '/agency/white-label', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_agency_white_label'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/agency/white-label
+        register_rest_route(self::NAMESPACE, '/agency/white-label', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'save_agency_white_label'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/agency/report
+        register_rest_route(self::NAMESPACE, '/agency/report', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_agency_report'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // GET /aiseo/v1/agency/multisite
+        register_rest_route(self::NAMESPACE, '/agency/multisite', [
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => [$this, 'get_agency_multisite'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
+
+        // POST /aiseo/v1/agency/multisite
+        register_rest_route(self::NAMESPACE, '/agency/multisite', [
+            'methods'             => WP_REST_Server::CREATABLE,
+            'callback'            => [$this, 'save_agency_multisite'],
+            'permission_callback' => [$this, 'check_admin_permission'],
+        ]);
     }
 
     /**
@@ -1059,6 +1129,176 @@ class RestApi
             'success' => true,
             'deleted' => $deleted,
             'message' => sprintf(__('Pruned %d records older than %d days.', 'answermesh'), $deleted, $days),
+        ], 200);
+    }
+
+    /**
+     * GET /commerce/status handler.
+     */
+    public function get_commerce_status(WP_REST_Request $request): WP_REST_Response
+    {
+        return new WP_REST_Response([
+            'success'            => true,
+            'woocommerce_active' => WooCommerceSchema::is_woocommerce_active(),
+            'safe_context'       => WooCommerceSchema::is_safe_commerce_context(),
+        ], 200);
+    }
+
+    /**
+     * GET /commerce/product/{id}/schema handler.
+     */
+    public function get_product_schema(WP_REST_Request $request): WP_REST_Response
+    {
+        $id = (int) $request->get_param('id');
+        $schema = WooCommerceSchema::build_product_schema($id);
+
+        return new WP_REST_Response([
+            'success' => !empty($schema),
+            'schema'  => $schema,
+        ], 200);
+    }
+
+    /**
+     * GET /commerce/product/{id}/qa handler.
+     */
+    public function get_product_qa(WP_REST_Request $request): WP_REST_Response
+    {
+        $id = (int) $request->get_param('id');
+        $questions = ProductQuestionEngine::generate_questions($id);
+        $faq_schema = ProductQuestionEngine::build_faq_schema($id);
+
+        return new WP_REST_Response([
+            'success'    => true,
+            'count'      => count($questions),
+            'questions'  => $questions,
+            'faq_schema' => $faq_schema,
+        ], 200);
+    }
+
+    /**
+     * GET /commerce/buying-guide handler.
+     */
+    public function get_commerce_buying_guide(WP_REST_Request $request): WP_REST_Response
+    {
+        $category = sanitize_text_field((string) ($request->get_param('category') ?: ''));
+        $limit = (int) ($request->get_param('limit') ?: 5);
+        $matrix = BuyingGuideEngine::generate_comparison_matrix($category, $limit);
+        $html = BuyingGuideEngine::render_html($matrix);
+
+        return new WP_REST_Response([
+            'success' => !empty($matrix),
+            'matrix'  => $matrix,
+            'html'    => $html,
+        ], 200);
+    }
+
+    /**
+     * GET /commerce/categories handler.
+     */
+    public function get_commerce_categories(WP_REST_Request $request): WP_REST_Response
+    {
+        $categories = [];
+        if (function_exists('get_terms')) {
+            $terms = get_terms([
+                'taxonomy'   => 'product_cat',
+                'hide_empty' => false,
+            ]);
+            if (is_array($terms)) {
+                foreach ($terms as $term) {
+                    $categories[] = [
+                        'id'    => (int) $term->term_id,
+                        'name'  => (string) $term->name,
+                        'slug'  => (string) $term->slug,
+                        'count' => (int) $term->count,
+                    ];
+                }
+            }
+        }
+
+        return new WP_REST_Response([
+            'success'    => true,
+            'count'      => count($categories),
+            'categories' => $categories,
+        ], 200);
+    }
+
+    /**
+     * GET /agency/white-label handler.
+     */
+    public function get_agency_white_label(WP_REST_Request $request): WP_REST_Response
+    {
+        return new WP_REST_Response([
+            'success'  => true,
+            'config'   => WhiteLabel::get_config(),
+            'branding' => WhiteLabel::get_branding(),
+        ], 200);
+    }
+
+    /**
+     * POST /agency/white-label handler.
+     */
+    public function save_agency_white_label(WP_REST_Request $request): WP_REST_Response
+    {
+        $params = (array) $request->get_json_params();
+        $updated = WhiteLabel::save_config($params);
+
+        return new WP_REST_Response([
+            'success'  => $updated,
+            'config'   => WhiteLabel::get_config(),
+            'branding' => WhiteLabel::get_branding(),
+            'message'  => __('Agency white-label settings updated successfully.', 'answermesh'),
+        ], 200);
+    }
+
+    /**
+     * GET /agency/report handler.
+     */
+    public function get_agency_report(WP_REST_Request $request): WP_REST_Response
+    {
+        $report_data = AgencyReport::compile_report_data();
+        $format = sanitize_text_field((string) ($request->get_param('format') ?: 'json'));
+
+        if ($format === 'html') {
+            $html = AgencyReport::render_printable_html($report_data);
+            return new WP_REST_Response([
+                'success' => true,
+                'html'    => $html,
+            ], 200);
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'report'  => $report_data,
+            'html'    => AgencyReport::render_printable_html($report_data),
+        ], 200);
+    }
+
+    /**
+     * GET /agency/multisite handler.
+     */
+    public function get_agency_multisite(WP_REST_Request $request): WP_REST_Response
+    {
+        return new WP_REST_Response([
+            'success'               => true,
+            'is_multisite'          => MultiSiteManager::is_multisite(),
+            'is_network_activated'  => MultiSiteManager::is_network_activated(),
+            'allows_site_overrides' => MultiSiteManager::allows_site_overrides(),
+            'network_settings'      => MultiSiteManager::get_network_settings(),
+        ], 200);
+    }
+
+    /**
+     * POST /agency/multisite handler.
+     */
+    public function save_agency_multisite(WP_REST_Request $request): WP_REST_Response
+    {
+        $params = (array) $request->get_json_params();
+        $updated = MultiSiteManager::update_network_settings($params);
+
+        return new WP_REST_Response([
+            'success'          => $updated,
+            'network_settings' => MultiSiteManager::get_network_settings(),
+            'message'          => __('Multisite network settings updated successfully.', 'answermesh'),
         ], 200);
     }
 }
